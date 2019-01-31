@@ -1,4 +1,4 @@
-from random import shuffle, randint
+from random import shuffle, randint, sample
 from itertools import combinations
 from queue import Queue
 
@@ -59,19 +59,79 @@ class SocialGraph:
         # Add users
         for user in range(numUsers):
             self.addUser(user)
-        # Create friendships
+        #####################
+        # Original Create friendships
+        #####################
         # possible_friendships = list(combinations(range(1, numUsers+1), 2))
         # shuffle(possible_friendships)
         # for num in range((numUsers*avgFriendships)//2):
         #     friendship = possible_friendships[num]
         #     self.addFriendship(friendship[0], friendship[1])
 
+        #########################################
         # Refactor for adding friendships stretch
+        #########################################
+        # numFriends = 0
+        # while numFriends < numUsers*avgFriendships//2:
+        #     friends_added = self.addFriendship(
+        #         randint(1, numUsers), randint(1, numUsers))
+        #     numFriends += friends_added
+
+        #########################################
+        # Refactor adding friendships for fun
+        #########################################
         numFriends = 0
-        while numFriends < numUsers*avgFriendships//2:
-            friends_added = self.addFriendship(
-                randint(1, numUsers), randint(1, 10))
-            numFriends += friends_added
+        possible_choices = set(range(1, numUsers+1))
+        already_friends = {}
+        for user in self.users:
+            # set self equal to max user
+            # ie friend 1 = 100 only 99 choices for friend 1
+            # friend 1 can't be friends with self so we set it to 100
+            already_friends[user] = {user: numUsers}
+        numFriendships = numUsers*avgFriendships//2
+        while numFriends < numFriendships:
+            print('test', already_friends)
+            # pull first friend from friends not maxed on friends
+            friend1 = sample(possible_choices, 1)[0]
+            # Set number of possibilities for friend 2
+            # number of users - length of already friends with user
+            # ie. friend 100 cant be friends with self possible choices = 1-99
+            second_friend_number_of_choices = numUsers - \
+                len(already_friends[friend1])
+            # pick random number from choices for friend 2
+            friend2 = randint(1, second_friend_number_of_choices)
+            # if friend2 already friends with friend 1 retrieve alternate value
+            if already_friends[friend1].get(friend2):
+                # ie friend1 = 1 and friend2 = 1.
+                # retrieves and sets friend2 to 100
+                friend2 = already_friends[friend1].get(friend2)
+                print('friend', friend2, friend1)
+                # add friendship
+                addFriend = self.addFriendship(friend1, friend2)
+                numFriends += addFriend
+                # since we remove one choice from second friend number of choices we need to reset the number we took to second friend number of choices
+                # ie friend2 => 1 => 100 but now needs to be set to 99
+                already_friends[friend1][friend2] = second_friend_number_of_choices
+                already_friends[friend2][friend1] = numUsers - \
+                    len(already_friends[friend2])
+            # if friend1 not already friends with friend2
+            else:
+                print('friend', friend2, friend1)
+                addFriend = self.addFriendship(friend1, friend2)
+                numFriends += addFriend
+                already_friends[friend1][friend2] = second_friend_number_of_choices
+                already_friends[friend2][friend1] = numUsers - \
+                    len(already_friends[friend2])
+
+            # remove friends from list of possible choices when maxed on friends
+            print('num of friends', friend1, len(already_friends[friend1]), friend2, len(
+                already_friends[friend2]))
+            if len(already_friends[friend1]) == numUsers:
+                possible_choices.remove(friend1)
+                print('choice', possible_choices)
+            if len(already_friends[friend2]) == numUsers:
+                possible_choices.remove(friend2)
+                print('choice', possible_choices)
 
     def getAllSocialPaths(self, userID):
         """
@@ -97,7 +157,7 @@ class SocialGraph:
 
 if __name__ == '__main__':
     sg = SocialGraph()
-    sg.populateGraph(10, 2)
+    sg.populateGraph(3, 2)
     print(sg.friendships)
     connections = sg.getAllSocialPaths(1)
     print(connections)
